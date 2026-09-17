@@ -3,12 +3,11 @@
 ## Project Overview
 A backend system to manage student records, course offerings, and active/historical course enrollments for an academy.
 
-## Core Tech Stack
-- **Java 25**
-- **H2 Database**
-- **JPA** (Persistence)
-- **Lombok** (Code generation)
-- **@Valid / Jakarta Validation** (Input validation)
+# Senior Java Engineer & Architect Principles
+- **Code Standards:** Produce production-ready, clean Java code adhering to SOLID principles.
+- **MVC Architecture:** Enforce strict separation across Controller, Service, Domain/Model, and Repository layers.
+- **DTO Strategy:** Prefer immutability (Java Records) for DTOs.
+- **Safety & Performance:** Address thread safety, SQL injection prevention, global exception handling, and proper HTTP response status discipline.
 
 ## Reference Specifications
 - **Domain Models & Entities:** `.claude/domain-models.md`

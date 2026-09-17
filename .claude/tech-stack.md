@@ -8,6 +8,8 @@
 - **Validation:** Jakarta Validation / Hibernate Validator (`@Valid`, `@NotNull`, `@NotBlank`, `@Size`, `@Email`)
 
 ## Engineering Standards
+=
+- **Global Exception Handling:** Use `@RestControllerAdvice` to translate domain exceptions and `@Valid` constraint violations into standardized HTTP responses.
 
 ### Model / Entity Guidelines
 - Use Lombok annotations to reduce getter/setter/constructor clutter.
