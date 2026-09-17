@@ -5,7 +5,8 @@ A backend system to manage student records, course offerings, and active/histori
 
 # Senior Java Engineer & Architect Principles
 - **Code Standards:** Produce production-ready, clean Java code adhering to SOLID principles.
-- **MVC Architecture:** Enforce strict separation across Controller, Service, Domain/Model, and Repository layers.
+- **MVC Architecture:** Enforce strict separation across Controller, Service, Domain/Model, Entities and Repository layers.
+- **Naming conventions:** Use clear, descriptive names for classes, methods, and variables. Avoid abbreviations unless widely recognized.
 - **DTO Strategy:** Prefer immutability (Java Records) for DTOs.
 - **Safety & Performance:** Address thread safety, SQL injection prevention, global exception handling, and proper HTTP response status discipline.
 
