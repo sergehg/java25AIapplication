@@ -4,7 +4,7 @@ Work completed on the backend: the **persistence layer**, the **service layer**,
 **REST API layer** (controllers, DTOs, global exception handling), and the **test suite**.
 
 - **Stack:** Java 25, Spring Boot 4.1.1, Spring Data JPA / Hibernate, H2 (in-memory), Lombok, Bean Validation
-- **Build:** `./mvnw clean install` — passing, 86 tests, 0 failures
+- **Build:** `./mvnw clean install` — passing, 87 tests, 0 failures
 - **Base package:** `com.excercise.java25ai`
 
 ---
@@ -154,7 +154,9 @@ walk back into a lazy proxy. Status is never accepted from the caller on creatio
 | `GET` | `/api/reports/courses/enrolled-students` | 200 | `Map<String, List<String>>` |
 | `GET` | `/api/reports/courses/enrolled-students/text` | 200 | `text/plain` |
 
-Every mutation endpoint annotates its request body with `@Valid`. Paged endpoints use Spring Data's
+Every mutation endpoint annotates its request body with `@Valid` (business rule §6, audited and
+confirmed: all five body-carrying `POST`/`PUT` endpoints; the two `PATCH` endpoints take only a
+path id and have no body to validate). Paged endpoints use Spring Data's
 `Pageable` resolver with `@PageableDefault`, and wrap results in `PagedResponse<T>` rather than
 serializing `Page` directly, whose JSON structure is documented as unstable and leaks `Pageable`
 internals into the public contract.
@@ -235,7 +237,7 @@ check. Three layers guard it:
 | 8 | Removed `unique = true` from the `email` and `code` columns | Combined with a named `@UniqueConstraint`, Hibernate emitted only an anonymous column-level constraint (`CONSTRAINT_9`), making error mapping non-deterministic. |
 | 9 | Added `spring-boot-starter-validation` to `pom.xml` | Bean Validation was absent from the classpath, so the DTO constraints would have been silently inert. |
 | 10 | Services expose DTOs only; entities never cross the layer boundary | Keeps the persistence model out of the web layer. |
-| 11 | Conflict conditions return **409**, not 400 | The spec says "400 or 404", but duplicate, already-enrolled and course-full are state conflicts, not malformed payloads; 409 lets a client tell them apart. `BusinessRuleViolationException` stays 400 and `ResourceNotFoundException` 404. |
+| 11 | Conflict conditions return **409**, not 400 | The spec originally said "400 or 404", but duplicate, already-enrolled and course-full are state conflicts, not malformed payloads; 409 lets a client tell them apart. `BusinessRuleViolationException` stays 400 and `ResourceNotFoundException` 404. **Now reflected in the spec:** `business-rules.md` carries the full exception → status table, the 400-vs-409 rule, and already-enrolled-over-course-full precedence; the exception Javadocs state 409 Conflict. |
 | 12 | `DELETE` performs the soft delete; `?permanent=true` opts into the hard delete | Makes the spec's preferred removal path the default, so the destructive operation is never the accident. |
 | 13 | Paged endpoints return a `PagedResponse<T>` envelope | Spring Data warns that serializing `Page` directly yields an unstable JSON structure. |
 | 14 | `enroll()` checks for a prior enrollment **before** the capacity check | Discovered while testing: a student re-posting an enrollment to a course that had since filled received "course is full" instead of "already enrolled" — true but misleading, since one of those seats was theirs. |
@@ -255,7 +257,7 @@ check. Three layers guard it:
   exact plain-text report output. This file was held only in a session scratchpad and has since
   been lost; `EnrollmentRulesIntegrationTest` re-covers its enrollment-specific cases.
 
-### Test suite (86 tests, all passing)
+### Test suite (87 tests, all passing)
 
 **Unit tests** — JUnit 5 + Mockito. Repositories are `@Mock`; the mappers are the real stateless
 implementations, so the assertions cover mapping too. Services are constructed directly, which
@@ -273,7 +275,7 @@ web-layer and integration tests instead.
 
 | File | Tests | Covers |
 |---|---|---|
-| `controller/ValidationErrorHandlingTest` | 14 | Invalid `@Valid` payloads on all three mutation endpoints returning 400 with the exact per-field messages, missing fields, size limits, `@Min`/`@Max` bounds, malformed and unparseable bodies, and `verifyNoInteractions` proving the request never reaches the service. Each group includes a valid-payload control case. |
+| `controller/ValidationErrorHandlingTest` | 15 | Invalid `@Valid` payloads on all five body-carrying mutation endpoints (`POST`/`PUT` students, `POST`/`PUT` courses, `POST` enrollments) returning 400 with the exact per-field messages, missing fields, size limits, `@Min`/`@Max` bounds, malformed and unparseable bodies, and `verifyNoInteractions` proving the request never reaches the service. Each group includes a valid-payload control case. |
 
 **Integration tests** — full `@SpringBootTest` context against H2.
 
@@ -282,12 +284,11 @@ web-layer and integration tests instead.
 | `controller/ApiContractIntegrationTest` | 10 | Every endpoint end to end, status discipline, `Location` headers, the `PagedResponse` envelope, and the full error contract (400 with field errors, 404, 409, malformed body, bad parameter types) |
 | `service/EnrollmentRulesIntegrationTest` | 6 | `enroll()` guard ordering, drop → reopen → re-enroll reusing one row, a dropped student losing their seat to someone else, completed-course rejection, archived-course rejection, capacity reduction |
 
-> **Reading the counts:** test classes use `@Nested` groups. Two consequences worth knowing:
-> `-Dtest=SomeClassName` does **not** select nested classes (it reports `Tests run: 0`), so run the
-> full `./mvnw test`; and surefire's per-class `.txt` report shows `0` for those classes while the
-> real counts appear under the group display names. The reliable total comes from counting
-> `<testcase>` elements in `target/surefire-reports/TEST-*.xml` — the `tests` attribute on an
-> aggregated suite undercounts.
+> **Reading the counts:** test classes use `@Nested` groups, so surefire's per-class `.txt` report
+> shows `0` for those classes while the real counts appear under the group display names. The
+> reliable total comes from counting `<testcase>` elements in `target/surefire-reports/TEST-*.xml`
+> — the `tests` attribute on an aggregated suite undercounts (e.g. `ValidationErrorHandlingTest`
+> reports `tests="13"` but contains 15 test cases).
 
 > Note for whoever writes the tests: Spring Boot 4 moved `@DataJpaTest` to
 > `org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest`. The Boot 3 import
@@ -305,8 +306,12 @@ web-layer and integration tests instead.
 3. **API documentation** — no OpenAPI/Swagger dependency is present yet.
 4. **Housekeeping** — an empty `src/main/java/com/excercise/java25ai/model/enums/` directory is
    left over from before the enums moved under `entity/enums/`; it can be deleted.
-5. **Nothing is committed yet** — all work from these sessions is still uncommitted on the
-   `persistenceLayer` branch.
+
+### Version control
+
+All work is committed and pushed to `origin/persistenceLayer` (as of `4604332` — exception →
+HTTP status mapping documented in the spec, and course-update validation test added). The branch
+has not yet been merged into `master`.
 
 ### Spring Boot 4 test-annotation moves
 
