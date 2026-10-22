@@ -203,6 +203,21 @@ class ValidationErrorHandlingTest {
         }
 
         @Test
+        void rejectsAnInvalidUpdatePayload() throws Exception {
+            mockMvc.perform(put("/api/courses/{id}", 1)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                     {"title":"","description":"Java","capacity":0}
+                                     """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.path").value("/api/courses/1"))
+                    .andExpect(jsonPath("$.fieldErrors.title").value("Title is required"))
+                    .andExpect(jsonPath("$.fieldErrors.capacity").value("Capacity must be at least 1"));
+
+            verify(courseService, never()).update(any(), any());
+        }
+
+        @Test
         void acceptsAValidPayload() throws Exception {
             when(courseService.create(any())).thenReturn(new CourseResponse(
                     1L, "JAVA-25", "Programming", "Java", 10, 0L, 10L, CourseStatus.OPEN));

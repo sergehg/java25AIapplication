@@ -2,7 +2,7 @@ package com.excercise.java25ai.exception;
 
 /**
  * Raised when an enrollment is attempted on a course whose active enrollments have
- * reached its capacity. Maps to HTTP 409 / 400.
+ * reached its capacity. Maps to HTTP 409 Conflict.
  */
 public class CourseFullException extends RuntimeException {
 

@@ -2,7 +2,7 @@ package com.excercise.java25ai.exception;
 
 /**
  * Raised when a student already holds an active {@code ENROLLED} record for the same course.
- * Maps to HTTP 409 / 400.
+ * Maps to HTTP 409 Conflict.
  */
 public class AlreadyEnrolledException extends RuntimeException {
 

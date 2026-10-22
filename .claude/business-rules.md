@@ -44,17 +44,29 @@
 
 ## 6. Validation Execution
 - All incoming REST controller payloads mutating state (`POST`, `PUT`, `PATCH`) must enforce validation using `@Valid`.
-- 
 
 ## API & Exception Handling Rules
 
 ### Global Exception Handling
 - **Mechanism:** Implement a central `@RestControllerAdvice` component.
 - **Handled Exceptions & Responses:**
-  - `MethodArgumentNotValidException` (`@Valid` failures) → Return HTTP `400 Bad Request` with field error details.
-  - Custom Domain Exceptions (`ResourceNotFoundException`, `CourseFullException`, `DuplicateResourceException`) → Return HTTP `400` or `404` with clean, readable error messages.
-  - `Exception` (Unhandled errors) → Return HTTP `500 Internal Server Error` with a generic, safe error message.
-- **Payload Format:** All error responses must follow a consistent JSON structure (`timestamp`, `status`, `error`, `message`, `path`).
+
+  | Exception | HTTP Status | When |
+  |---|---|---|
+  | `MethodArgumentNotValidException` | `400 Bad Request` | `@Valid` failure on a request body; response includes `fieldErrors` |
+  | `HandlerMethodValidationException`, `ConstraintViolationException` | `400 Bad Request` | Constraint failure on a path variable, request parameter or `@Validated` service; response includes `fieldErrors` |
+  | `HttpMessageNotReadableException`, `MethodArgumentTypeMismatchException`, `MissingServletRequestParameterException` | `400 Bad Request` | Malformed JSON, unknown enum value, wrong parameter type or missing parameter |
+  | `BusinessRuleViolationException` | `400 Bad Request` | Rule with no dedicated exception: blocked deletion, capacity reduced below active enrollments, inactive student or non-`OPEN` course on enroll, illegal status transition |
+  | `ResourceNotFoundException` | `404 Not Found` | Requested student, course or enrollment does not exist |
+  | `DuplicateResourceException` | `409 Conflict` | Duplicate student email or course code |
+  | `AlreadyEnrolledException` | `409 Conflict` | Student already holds an `ENROLLED` record for the course |
+  | `CourseFullException` | `409 Conflict` | Course active enrollments have reached `capacity` |
+  | `DataIntegrityViolationException`, `ObjectOptimisticLockingFailureException` | `409 Conflict` | Database backstop for concurrent requests that raced past the service checks; generic message, no SQL details |
+  | `Exception` (unhandled) | `500 Internal Server Error` | Generic, safe message; full cause is logged only |
+
+- **Status Discipline:** `400` means the request itself is invalid or breaks a rule regardless of current data; `409` means the request is well formed but conflicts with the current state of a resource.
+- **Precedence:** When a student is already enrolled in a course that is also full, `AlreadyEnrolledException` is reported (the duplicate check runs before the capacity check).
+- **Payload Format:** All error responses must follow a consistent JSON structure (`timestamp`, `status`, `error`, `message`, `path`). Validation failures add a `fieldErrors` object mapping each field to its message(s).
 
 
 

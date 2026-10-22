@@ -2,7 +2,7 @@ package com.excercise.java25ai.exception;
 
 /**
  * Raised when a uniqueness invariant is violated, such as a duplicate student email
- * or a duplicate course code. Maps to HTTP 409 / 400.
+ * or a duplicate course code. Maps to HTTP 409 Conflict.
  */
 public class DuplicateResourceException extends RuntimeException {
 
